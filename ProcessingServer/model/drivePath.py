@@ -1,4 +1,5 @@
 
+from shapely.geometry import Polygon
 
 class DrivePath:
     def __init__(self, img):
@@ -8,6 +9,8 @@ class DrivePath:
         self.start_right = ((self.width // 2) + 120, self.height)
         self.end_left = (self.width // 2 - 90, self.height // 2 + 160)  # Adjust the horizontal offset as needed
         self.end_right = (self.width // 2 + 90, self.height // 2 + 160)
+        polygon = [self.start_left, self.end_left, self.end_right, self.start_right]
+        self.polygon = Polygon(polygon)
     
     #converts the all the image coordinates to equivalent coordinates in the matrix
     def toMatrixCoords(self, matrix_width, matrix_height):

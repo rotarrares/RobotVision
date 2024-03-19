@@ -22,9 +22,11 @@ class PerceptionController:
         
         
     def find_obstructed_path(self, img, logits, objects):
-        self.service.is_path_driveable(img, logits)
-        self.service.find_path_obstructing_objects(img, objects)
-        return self.service.is_path_driveable(img, logits)
+        path_driveable = self.service.is_path_driveable(img, logits)
+        print(f'path driveable {path_driveable}')
+        path_objects = self.service.find_path_obstructing_objects(img, objects)
+        print(f'path objects {path_objects}')
+        return not (not path_driveable or path_objects)
     
     def get_driveable_path_coords(self, img):
         return self.service.compute_driveable_path_coords(img)

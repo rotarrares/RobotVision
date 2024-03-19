@@ -5,14 +5,23 @@ from data.labeling import nonInterestingLabels
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+from shapely.geometry import box
+import copy
 
 class PerceptionService:
-    def __init__(self, floor_confidence_treshold) -> None:
+    def __init__(self, floor_confidence_treshold, object_confidence_treshold) -> None:
         self.floor_confidence_treshold = floor_confidence_treshold
+        self.object_confidence_treshold = object_confidence_treshold
+        self.objects = []
         pass
     
     def find_objects(self, message):
-        return message.process_objects()
+        results = message.process_objects()
+        self.objects = copy.deepcopy(results)
+        for result in results:
+            mask = result.boxes.data[:, 4] >= self.object_confidence_treshold
+            result.boxes.data = result.boxes.data[mask]
+        return results
     
     def find_floor(self, message):
         logits = message.process_floor()
@@ -48,7 +57,22 @@ class PerceptionService:
         return self.__check_drive_path_matrix(drive_path, floor_predictions)
 
     def find_path_obstructing_objects(self, img, objects):
-        pass
+        obstructs_path = False
+        drive_path = DrivePath(img)
+        for bbox in self.__process_object_boxes(self.objects):
+            if bbox.intersects(drive_path.polygon):
+                obstructs_path = True
+        return obstructs_path
+
+    def __process_object_boxes(self, objects):
+        boxes = []
+        for object in objects:
+            if (object.boxes and len(object.boxes)):
+                bbox = object.boxes.xyxy[0, :4].tolist()
+                # Convert bounding box to a shapely polygon object
+                bbox_polygon = box(*bbox)  # Unpacks the bbox list into the box function
+                boxes.append(bbox_polygon)
+        return boxes
 
     def __check_drive_path_matrix(self,drive_path, floor_matrix):
         
@@ -61,6 +85,7 @@ class PerceptionService:
         x3 = pt3[0]
         x4 = pt4[0]
         floor_space = True
+        """
         # Create a matrix filled with zeros
         matrix = np.zeros((drive_path.height, drive_path.width, 3), dtype=np.uint8)
         # Fill the entire matrix with green color first
@@ -72,14 +97,14 @@ class PerceptionService:
                     matrix[i][j] = [0, 255, 255]  
                 else:
                     matrix[i][j] = [0, 0, 0]  
-
+        """
         for x in range(min(x1, x4), max(x2, x3) + 1):
             top_y = int(round(self.__interpolate_y(x, pt1, pt2)))
             bottom_y = int(round(self.__interpolate_y(x, pt4, pt3)))
             for y in range(top_y, bottom_y + 1):
-                matrix[y-1][x-1] = [255, 255, 0] 
+                #matrix[y-1][x-1] = [255, 255, 0] 
                 if (floor_matrix[y-1][x-1] == 0):
-                    matrix[y-1][x-1] = [255,255, 255]
+                    #matrix[y-1][x-1] = [255,255, 255]
                     floor_space = False
         #matrix = cv2.resize(matrix, (500,500), interpolation=cv2.INTER_AREA)
         # Display the matrix

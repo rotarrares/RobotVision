@@ -54,7 +54,6 @@ class GUI:
     def display_object_results(self, img, object_results):
         
         if img is not None:
-            
             for result in object_results:
                 img = result.plot(img=img, boxes=True, probs=True, labels=True, conf=True, masks=True)
         return img
